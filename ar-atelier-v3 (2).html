@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR Atelier | Mehmonxona dizayni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+:root{--ink:#17231f;--panel:#f6f8f7;--line:#d3dbd8;--mut:#66756f;--acc:#b8893b;--teal:#2d6a5f}
+*{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
+body{font-family:Manrope,system-ui,Arial,sans-serif;background:#dfe5e2;color:var(--ink)}
+header{background:var(--ink);color:#fff;padding:14px 4%;display:flex;justify-content:space-between;align-items:baseline}
+header h1{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:24px}
+header i{font-style:normal;color:var(--acc)}
+header p{font-size:13px;color:#a9b8b2}
+.main{display:grid;grid-template-columns:330px 1fr;height:calc(100vh - 54px);min-height:620px}
+.side{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px}
+.side section{padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+.side section:last-child{border:0}
+h2{font-family:Fraunces,Georgia,serif;font-size:17px;margin-bottom:10px}
+h3{font-size:12px;font-weight:700;color:var(--mut);margin:12px 0 6px}
+button,select,.fl{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:9px 11px;cursor:pointer}
+button:hover,.fl:hover{border-color:var(--teal)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.seg{display:flex;gap:6px}.seg button{flex:1}
+.on{background:var(--ink)!important;color:#fff!important;border-color:var(--ink)!important}
+.sw{width:30px;height:30px;border-radius:50%;padding:0;border:2px solid #fff;box-shadow:0 0 0 1px #aab6b2}
+.sw.on{box-shadow:0 0 0 2px var(--acc)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;font-size:13px;line-height:1.55}
+.hint{color:var(--mut);font-size:12.5px;line-height:1.6}
+.pri{background:var(--acc);border-color:var(--acc);color:#1b1408;font-weight:700}
+.dk{background:var(--ink);color:#fff;border-color:var(--ink)}
+.dn{color:#a23b36;border-color:#e2c3c1}
+.w{width:100%}
+select{width:100%;margin-bottom:6px}
+input[type=file]{display:none}
+input[type=range]{width:100%;accent-color:var(--teal)}
+label.s{display:block;font-size:12px;color:var(--mut);margin-top:8px}
+.list button{width:100%;text-align:left;margin-bottom:4px}
+.work{padding:16px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.work h2{font-size:22px;margin:0}
+.stage{position:relative;flex:1;min-height:440px;border-radius:12px;overflow:hidden;background:#cfd8d5}
+.stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+.hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;pointer-events:none}
+.pill{display:flex;gap:3px;background:rgba(246,248,247,.92);padding:4px;border-radius:10px;pointer-events:auto}
+.pill button{border:0;background:transparent;padding:7px 10px}
+.bar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(246,248,247,.94);padding:5px;border-radius:12px;max-width:96%;flex-wrap:wrap;justify-content:center}
+.bar button{border:0;background:transparent;padding:9px 11px}
+.status{background:#fff;border-radius:8px;padding:10px 13px;font-size:13px;color:var(--mut)}
+#ar{display:none;position:fixed;inset:auto 0 0 0;z-index:9999;flex-direction:column;gap:6px;padding:10px;align-items:center;pointer-events:none}
+#ar *{pointer-events:auto}
+#ar .row{justify-content:center}
+#ar button{padding:13px}
+#ar select{width:auto;max-width:90vw}
+#arMsg{background:rgba(23,35,31,.85);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px}
+@media(max-width:860px){.main{grid-template-columns:1fr;height:auto}.side{border:0;border-bottom:1px solid var(--line)}.stage{min-height:460px}}
+</style>
+</head>
+<body>
+<header><h1>AR <i>Atelier</i></h1><p>Mehmonxona dizayni</p></header>
+<div class="main">
+<aside class="side">
+ <section>
+  <h2>Mebel katalogi</h2>
+  <div class="grid" id="cat"></div>
+  <h3>O‘z 3D modelingiz (GLB)</h3>
+  <select id="glbType"><option value="Divan|0.85">Divan</option><option value="Kreslo|0.9">Kreslo</option><option value="Stol|0.75">Stol</option><option value="Shkaf|1.8">Shkaf</option><option value="Lampa|1.5">Lampa</option><option value="Boshqa|1">Boshqa buyum</option></select>
+  <label class="fl w" style="display:block;text-align:center">GLB faylni tanlash<input type="file" id="glb" accept=".glb"></label>
+  <p class="hint" style="margin-top:6px">Model avtomatik markazlashadi, polga qo‘yiladi va tanlangan balandlikka keltiriladi.</p>
+ </section>
+ <section>
+  <h2>Tanlangan mebel</h2>
+  <div class="card" id="info"></div>
+  <div id="tools" hidden>
+   <label class="s">Aylantirish: <b id="vr">0</b>°</label><input type="range" id="rot" min="0" max="360" value="0">
+   <label class="s">O‘lcham: <b id="vs">100</b>%</label><input type="range" id="scl" min="40" max="220" value="100">
+   <label class="s">Pol ustidan balandlik: <b id="vl">0</b> sm</label><input type="range" id="lift" min="0" max="200" value="0">
+   <h3>Rang</h3><div class="row" id="tints"></div>
+   <div class="row" style="margin-top:10px"><button id="dup">Nusxa</button><button id="del" class="dn">O‘chirish</button></div>
+  </div>
+ </section>
+ <section>
+  <h2>Xona</h2>
+  <h3>Devor rangi</h3><div class="row" id="walls"></div>
+  <h3>Pol</h3><div class="seg" id="floors"></div>
+  <label class="s" style="display:flex;gap:8px;align-items:center;margin-top:12px"><input type="checkbox" id="col" checked> To‘qnashuvni bloklash</label>
+  <div class="row" style="margin-top:10px"><button id="auto">Avto tartib</button><button id="preset">Namuna</button><button id="clear" class="dn">Tozalash</button></div>
+  <h3>Jihozlar ro‘yxati</h3><div class="list" id="list"></div>
+ </section>
+ <section>
+  <h2>AR rejimi</h2>
+  <button class="w dk" id="arBtn">AR rejimini boshlash</button>
+  <p class="hint" style="margin-top:8px">Android Chrome, ARCore va HTTPS kerak. Telefon polga qaratiladi, mebel tanlanib “Qo‘yish” bosiladi. “Butun xona” barcha jihozni haqiqiy o‘lchamda joylaydi.</p>
+ </section>
+</aside>
+<main class="work">
+ <h2>Mehmonxona</h2>
+ <div class="stage" id="stage">
+  <div class="hud">
+   <div class="pill" id="views"><button data-v="persp" class="on">Burchak</button><button data-v="front">Old</button><button data-v="top">Tepadan</button></div>
+   <div class="pill" id="times"><button data-t="day" class="on">Kunduz</button><button data-t="eve">Kechqurun</button><button id="shot">Rasm</button></div>
+  </div>
+  <div class="bar"><button id="undo">↶ Bekor</button><button data-r="-15">⟲ Chapga</button><button data-r="15">⟳ O‘ngga</button><button data-sc="0.9">− Kichik</button><button data-sc="1.1">+ Katta</button></div>
+ </div>
+ <div class="status" id="status">Yuklanmoqda…</div>
+</main>
+</div>
+<div id="ar">
+ <div id="arMsg">Telefonni polga qarating.</div>
+ <select id="arPick"></select>
+ <div class="row"><button class="pri" id="arOne">Qo‘yish</button><button class="dk" id="arAll">Butun xona</button></div>
+ <div class="row"><button class="dk" id="arRot">⟳ Aylantirish</button><button class="dk" id="arPl">+</button><button class="dk" id="arMi">−</button><button class="dk" id="arUndo">Bekor</button><button class="dn" id="arEnd" style="background:#fff">Chiqish</button></div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const rad=Math.PI/180,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const toast=t=>$('#status').textContent='Holat: '+t;
+const stage=$('#stage');
+
+/* ===== sahna ===== */
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+renderer.xr.enabled=true;
+const cv=renderer.domElement;stage.insertBefore(cv,stage.firstChild);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,.05,80);
+const controls=new THREE.OrbitControls(camera,cv);
+controls.target.set(0,.8,0);controls.enableDamping=true;controls.maxPolarAngle=Math.PI*.49;controls.minDistance=2.5;controls.maxDistance=15;
+const VIEWS={persp:[5.2,4.2,7.2],front:[0,1.9,9],top:[0,11,.01]};
+function setView(k){camera.position.set(...VIEWS[k]);controls.target.set(0,k==='top'?0:.8,0);controls.update()}
+const amb=new THREE.AmbientLight(0xffffff,.45),hemi=new THREE.HemisphereLight(0xffffff,0x998f80,.55);
+const sun=new THREE.DirectionalLight(0xfff1d8,1.1);sun.position.set(2.5,5.5,-4.5);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:.5,far:20});
+scene.add(amb,hemi,sun);
+function resize(){if(renderer.xr.isPresenting)return;const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(stage);
+
+/* ===== yordamchi ===== */
+const M=(c,r=.8,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+function B(g,w,h,d,x,y,z,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;g.add(m);return m}
+function C(g,r,h,x,y,z,mat,r2){const m=new THREE.Mesh(new THREE.CylinderGeometry(r2===undefined?r:r2,r,h,32),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;g.add(m);return m}
+function Sp(g,r,x,y,z,mat){const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,16),mat);m.position.set(x,y,z);m.castShadow=true;g.add(m);return m}
+const DARK=M('#23282a',.5,.3),WOOD=M('#8b6b4a',.7),WHITE=M('#f1f1ed',.9);
+const legs=(g,xs,zs,h)=>xs.forEach(x=>zs.forEach(z=>C(g,.03,h,x,h/2,z,DARK)));
+
+/* ===== xona ===== */
+const room=new THREE.Group();scene.add(room);
+const wallMat=M('#dfe3df',1),floorMat=M('#ffffff',.72),glassMat=new THREE.MeshBasicMaterial({color:'#d9eefa'});
+const BOUND={x:2.97,z:2.47};
+(function(){
+ const fl=new THREE.Mesh(new THREE.PlaneGeometry(6,5).rotateX(-Math.PI/2),floorMat);fl.receiveShadow=true;room.add(fl);
+ [[0,1.4,-2.5,0,6],[-3,1.4,0,Math.PI/2,5],[3,1.4,0,-Math.PI/2,5]].forEach(([x,y,z,ry,w])=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,2.8),wallMat);m.position.set(x,y,z);m.rotation.y=ry;m.receiveShadow=true;room.add(m)});
+ B(room,6.3,.16,5.3,0,-.09,0,M('#27312f'));
+ const sk=M('#f0f0ec',.6);B(room,6,.1,.03,0,.05,-2.485,sk);B(room,.03,.1,5,-2.985,.05,0,sk);B(room,.03,.1,5,2.985,.05,0,sk);
+ // deraza
+ const wx=1.2,wy=1.55,g=new THREE.Mesh(new THREE.PlaneGeometry(1.4,1.1),glassMat);g.position.set(wx,wy,-2.49);room.add(g);
+ [[1.56,.07,0,.585],[1.56,.07,0,-.585],[.07,1.2,.745,0],[.07,1.2,-.745,0],[.04,1.1,0,0],[1.4,.04,0,0]].forEach(([w,h,dx,dy])=>B(room,w,h,.06,wx+dx,wy+dy,-2.47,sk));
+ B(room,1.7,.04,.14,wx,wy-.64,-2.43,sk);
+ const cur=M('#9fb0a6',1);B(room,.5,2.5,.08,wx-1.05,1.4,-2.42,cur);B(room,.5,2.5,.08,wx+1.05,1.4,-2.42,cur);B(room,2.9,.03,.03,wx,2.68,-2.42,DARK);
+ // eshik
+ B(room,.05,2.1,.95,-2.97,1.05,1.2,M('#7a5b3d',.6));[.7,1.7].forEach(z=>B(room,.06,2.16,.05,-2.97,1.08,z,sk));B(room,.06,.06,1.05,-2.97,2.13,1.2,sk);Sp(room,.035,-2.92,1,.85,M('#c8a45a',.3,.8));
+ // rasm
+ B(room,1.3,.85,.04,-.1,1.75,-2.47,DARK);B(room,1.18,.73,.02,-.1,1.75,-2.45,WHITE);B(room,.55,.55,.02,-.35,1.75,-2.44,M('#b8893b'));
+ const cc=new THREE.Mesh(new THREE.CircleGeometry(.22,32),M('#2d6a5f'));cc.position.set(.2,1.8,-2.43);room.add(cc);
+ B(room,.5,.7,.04,-1.15,1.75,-2.47,DARK);B(room,.4,.6,.02,-1.15,1.75,-2.45,M('#a9b8b2'));
+})();
+function tex(k){const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d'),R=Math.random;
+ if(k==='parket'){x.fillStyle='#6d4a2c';x.fillRect(0,0,512,512);for(let r=0;r<8;r++)for(let i=-1;i<3;i++){x.fillStyle='hsl(28,'+(38+R()*10)+'%,'+(42+R()*12)+'%)';x.fillRect(i*256+(r%2)*128+1,r*64+1,254,62)}}
+ else if(k==='plitka'){x.fillStyle='#9ea4a4';x.fillRect(0,0,512,512);for(let i=0;i<4;i++)for(let j=0;j<4;j++){x.fillStyle='hsl(180,3%,'+(80+R()*6)+'%)';x.fillRect(i*128+3,j*128+3,122,122)}}
+ else{x.fillStyle='#98a09e';x.fillRect(0,0,512,512);for(let i=0;i<5000;i++){x.fillStyle=R()<.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.06)';x.fillRect(R()*512,R()*512,2+R()*3,2+R()*3)}}
+ const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(k==='plitka'?3:2.4,k==='plitka'?2.5:2);t.anisotropy=8;t.encoding=THREE.sRGBEncoding;return t}
+const texs={};let floorKind='parket';
+function setFloor(k){floorKind=k;floorMat.map=texs[k]||(texs[k]=tex(k));floorMat.needsUpdate=true;$$('#floors button').forEach(b=>b.classList.toggle('on',b.dataset.f===k))}
+
+/* ===== mebel katalogi ===== */
+const FAB=['#7f9188','#3d4a5c','#d6d0c4','#2e3335','#a9654b','#6b7f99','#8b6b4a'];
+const CAT={
+sofa:{n:'Divan',c:'#7f9188',b(g,t){B(g,1.62,.3,.95,0,.3,0,t);B(g,2.1,.46,.24,0,.78,-.36,t);[-.93,.93].forEach(x=>B(g,.24,.55,.95,x,.43,0,t));[-.4,.4].forEach(x=>B(g,.78,.14,.68,x,.52,.1,t));legs(g,[-.95,.95],[-.38,.38],.15)}},
+armchair:{n:'Kreslo',c:'#3d4a5c',b(g,t){B(g,.6,.28,.85,0,.3,0,t);B(g,.9,.5,.18,0,.72,-.33,t);[-.37,.37].forEach(x=>B(g,.16,.5,.85,x,.4,0,t));B(g,.58,.12,.6,0,.5,.08,t);legs(g,[-.37,.37],[-.38,.38],.15)}},
+coffee:{n:'Past stol',c:'#8b6b4a',b(g,t){C(g,.5,.05,0,.42,0,t);C(g,.05,.38,0,.2,0,DARK);C(g,.28,.03,0,.015,0,DARK)}},
+side:{n:'Yon stol',c:'#8b6b4a',b(g,t){C(g,.26,.04,0,.5,0,t);legs(g,[-.14,.14],[-.14,.14],.5)}},
+tv:{n:'TV tumba',c:'#8b6b4a',b(g,t){B(g,1.6,.45,.42,0,.3,0,t);legs(g,[-.7,.7],[-.15,.15],.08);B(g,1.2,.7,.05,0,.95,0,DARK);B(g,.3,.06,.18,0,.55,0,DARK)}},
+shelf:{n:'Javon',c:'#d6d0c4',b(g,t){[-.535,.535].forEach(x=>B(g,.03,1.8,.38,x,.9,0,t));B(g,1.1,1.8,.015,0,.9,-.18,t);[.015,.45,.9,1.35,1.785].forEach(y=>B(g,1.04,.03,.36,0,y,0,t));
+ const bc=['#a9654b','#3d4a5c','#b8893b','#6b7f99','#8c9a8f'].map(c=>M(c,.9));[.465,.915,1.365].forEach((y,i)=>{let x=-.45;for(let k=0;k<5;k++){const w=.05+((k*7+i*3)%4)*.012,h=.26+((k+i)%3)*.05;B(g,w,h,.22,x,y+h/2,-.02,bc[(k+i)%5]);x+=w+.03}})}},
+lamp:{n:'Torsher',c:'#f3e7cf',nt:1,b(g){C(g,.17,.03,0,.015,0,DARK);C(g,.015,1.45,0,.76,0,DARK);const sh=C(g,.22,.32,0,1.55,0,new THREE.MeshStandardMaterial({color:'#f3e7cf',emissive:'#ffd9a0',emissiveIntensity:.5,side:THREE.DoubleSide,roughness:1}),.14);
+ const l=new THREE.PointLight(0xffb870,0,5,2);l.position.set(0,1.45,0);g.add(l)}},
+plant:{n:'O‘simlik',c:'#b8b2a6',nt:1,b(g){C(g,.18,.34,0,.17,0,M('#b8b2a6'));[[0,.7,0,.26,'#4f7a52'],[.12,.95,.05,.2,'#5e8c5f'],[-.12,.85,-.06,.2,'#3f6a45']].forEach(([x,y,z,r,c])=>{const s=Sp(g,r,x,y,z,M(c,1));s.scale.y=1.2})}},
+rug:{n:'Gilam',c:'#8b9a94',flat:1,b(g,t){const m=B(g,2.8,.02,1.9,0,.012,0,t);m.castShadow=false;B(g,2.5,.022,1.6,0,.014,0,M('#a9b8b2',1)).castShadow=false}}
+};
+
+/* ===== mebellar boshqaruvi ===== */
+const furn=new THREE.Group();scene.add(furn);
+let items=[],sel=null;
+const helper=new THREE.BoxHelper(new THREE.Object3D(),0xb8893b);helper.visible=false;scene.add(helper);
+const box=o=>new THREE.Box3().setFromObject(o);
+function bad(g){g.updateMatrixWorld(true);const b=box(g);if(b.min.x<-BOUND.x||b.max.x>BOUND.x||b.min.z<-BOUND.z||b.max.z>BOUND.z)return true;
+ if(!$('#col').checked||g.userData.flat)return false;b.expandByScalar(-.005);return items.some(o=>o!==g&&!o.userData.flat&&b.intersectsBox(box(o)))}
+function findSpot(g){if(g.userData.flat){g.position.set(0,0,-.3);return true}const y=g.position.y;let best=null,bd=1e9;
+ for(let x=-2.8;x<=2.8;x+=.2)for(let z=-2.3;z<=2.3;z+=.2){g.position.set(x,y,z);if(!bad(g)){const d=Math.hypot(x*.5,z+1.8);if(d<bd){bd=d;best=[x,z]}}}
+ if(!best)return false;g.position.set(best[0],y,best[1]);return true}
+const undoS=[];
+const snap=()=>({l:items.slice(),s:items.map(o=>[o,o.position.clone(),o.rotation.y,o.scale.x])});
+function pushU(){undoS.push(snap());if(undoS.length>40)undoS.shift()}
+function undo(){const s=undoS.pop();if(!s)return toast('bekor qilinadigan amal yo‘q.');
+ furn.children.slice().forEach(o=>furn.remove(o));items=s.l;items.forEach(o=>furn.add(o));s.s.forEach(([o,p,r,sc])=>{o.position.copy(p);o.rotation.y=r;o.scale.setScalar(sc)});
+ if(!items.includes(sel))sel=null;refresh();save()}
+function makeItem(type,c){const D=CAT[type],g=new THREE.Group(),t=M(c||D.c,.95);g.userData={type,name:D.n,tint:[t],flat:!!D.flat,nt:!!D.nt,c:c||D.c};D.b(g,t);return g}
+function addItem(g,o={}){
+ if(o.x!==undefined){g.position.set(o.x,o.y||0,o.z);g.rotation.y=(o.r||0)*rad;g.scale.setScalar(o.s||1)}
+ else if(!findSpot(g)){toast('xonada bo‘sh joy yo‘q. Boshqa mebelni ko‘chiring yoki o‘chiring.');return null}
+ furn.add(g);items.push(g);return g}
+function select(g){sel=g;if(g){helper.setFromObject(g);helper.visible=true}else helper.visible=false;refresh()}
+function refresh(){
+ $('#list').innerHTML='';items.forEach(o=>{const b=document.createElement('button');b.textContent=o.userData.name;if(o===sel)b.className='on';b.onclick=()=>select(o);$('#list').appendChild(b)});
+ if(!sel){$('#info').innerHTML='<span class="hint">Mebelni sahnada bosing yoki katalogdan qo‘shing.</span>';$('#tools').hidden=true;helper.visible=false;return}
+ const b=box(sel),s=new THREE.Vector3();b.getSize(s);
+ $('#info').innerHTML='<b>'+sel.userData.name+'</b><br>'+s.x.toFixed(2)+' × '+s.z.toFixed(2)+' × '+s.y.toFixed(2)+' m (E×U×B)';
+ $('#tools').hidden=false;const r=((sel.rotation.y/rad)%360+360)%360;
+ $('#rot').value=r;$('#vr').textContent=Math.round(r);$('#scl').value=sel.scale.x*100;$('#vs').textContent=Math.round(sel.scale.x*100);$('#lift').value=sel.position.y*100;$('#vl').textContent=Math.round(sel.position.y*100);
+ $('#tints').style.display=sel.userData.nt?'none':'flex';helper.setFromObject(sel)}
+function tryT(g,fn){const p=g.position.clone(),r=g.rotation.y,s=g.scale.x;fn();if(bad(g)){g.position.copy(p);g.rotation.y=r;g.scale.setScalar(s);toast('bu yerda to‘qnashuv yoki xona chegarasi.');refresh();return false}refresh();return true}
+function needSel(){if(!sel)toast('avval mebelni tanlang.');return !!sel}
+function doRot(d){if(!needSel())return;pushU();tryT(sel,()=>sel.rotation.y+=d*rad);save()}
+function doSc(f){if(!needSel())return;const n=sel.scale.x*f;if(n<.4||n>2.2)return toast('o‘lcham chegarasiga yetdi.');pushU();tryT(sel,()=>sel.scale.setScalar(n));save()}
+function del(){if(!needSel())return;pushU();furn.remove(sel);items=items.filter(o=>o!==sel);select(null);save()}
+function dup(){if(!needSel())return;if(sel.userData.glb)return toast('GLB modelni qayta yuklab qo‘shing.');pushU();const g=makeItem(sel.userData.type,sel.userData.c);g.rotation.y=sel.rotation.y;g.scale.copy(sel.scale);if(addItem(g))select(g);save()}
+$('#rot').addEventListener('pointerdown',pushU);$('#scl').addEventListener('pointerdown',pushU);$('#lift').addEventListener('pointerdown',pushU);
+$('#rot').oninput=e=>sel&&tryT(sel,()=>sel.rotation.y=e.target.value*rad);
+$('#scl').oninput=e=>sel&&tryT(sel,()=>sel.scale.setScalar(e.target.value/100));
+$('#lift').oninput=e=>sel&&tryT(sel,()=>sel.position.y=e.target.value/100);
+['#rot','#scl','#lift'].forEach(s=>$(s).onchange=save);
+$$('[data-r]').forEach(b=>b.onclick=()=>doRot(+b.dataset.r));$$('[data-sc]').forEach(b=>b.onclick=()=>doSc(+b.dataset.sc));
+$('#del').onclick=del;$('#dup').onclick=dup;$('#undo').onclick=undo;
+addEventListener('keydown',e=>{if(/INPUT|SELECT/.test(e.target.tagName)&&e.target.type!=='range')return;
+ if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo()}else if(e.key==='Delete'||e.key==='Backspace')del();else if(e.key==='r'||e.key==='R')doRot(15);else if(e.key==='Escape')select(null)});
+
+/* ===== sichqoncha va barmoq ===== */
+const rc=new THREE.Raycaster(),mv=new THREE.Vector2(),PL=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+let drag=null,off=null,moved=false,downE=null;
+function ray(e){const r=cv.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);rc.setFromCamera(mv,camera)}
+function pickItem(e){ray(e);const h=rc.intersectObjects(items,true)[0];if(!h)return null;let o=h.object;while(o.parent&&o.parent!==furn)o=o.parent;return items.includes(o)?o:null}
+function floorPt(e){ray(e);const v=new THREE.Vector3();return rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),-(drag?drag.position.y:0)),v)?v:null}
+cv.addEventListener('pointerdown',e=>{if(renderer.xr.isPresenting)return;downE=[e.clientX,e.clientY];const o=pickItem(e);if(!o)return;
+ select(o);drag=o;const q=floorPt(e);off=q?{x:o.position.x-q.x,z:o.position.z-q.z}:{x:0,z:0};moved=false;controls.enabled=false;cv.setPointerCapture(e.pointerId)},true);
+cv.addEventListener('pointermove',e=>{if(!drag)return;const q=floorPt(e);if(!q)return;if(!moved){pushU();moved=true}
+ const p=drag.position,ox=p.x,oz=p.z,nx=q.x+off.x,nz=q.z+off.z;
+ const t=(x,z)=>{p.x=x;p.z=z;if(bad(drag)){p.x=ox;p.z=oz;return false}return true};
+ if(!t(nx,nz)&&!t(nx,oz))t(ox,nz);refresh()});
+const up=e=>{controls.enabled=true;if(drag&&moved)save();
+ if(!drag&&downE&&Math.hypot(e.clientX-downE[0],e.clientY-downE[1])<4&&!renderer.xr.isPresenting)select(null);drag=null;downE=null};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+
+/* ===== interfeys ===== */
+const WALLS=['#dfe3df','#cfd5dc','#e5dccc','#b9c7bd','#46535b'];
+function setWall(c){wallMat.color.set(c);$$('#walls button').forEach(b=>b.classList.toggle('on',b.dataset.c===c))}
+WALLS.forEach(c=>{const b=document.createElement('button');b.className='sw';b.style.background=c;b.dataset.c=c;b.setAttribute('aria-label','Devor '+c);b.onclick=()=>{setWall(c);save()};$('#walls').appendChild(b)});
+FAB.forEach(c=>{const b=document.createElement('button');b.className='sw';b.style.background=c;b.setAttribute('aria-label','Rang '+c);b.onclick=()=>{if(!sel)return;pushU();sel.userData.tint.forEach(m=>m.color.set(c));sel.userData.c=c;save()};$('#tints').appendChild(b)});
+{const f={parket:'Parket',plitka:'Plitka',beton:'Beton'};for(const k in f){const b=document.createElement('button');b.textContent=f[k];b.dataset.f=k;b.onclick=()=>{setFloor(k);save()};$('#floors').appendChild(b)}}
+for(const k in CAT){const b=document.createElement('button');b.textContent=CAT[k].n;b.onclick=()=>{pushU();const g=addItem(makeItem(k));if(g){select(g);toast(CAT[k].n+' qo‘shildi.');save()}else undoS.pop()};$('#cat').appendChild(b)}
+$('#glb').onchange=function(){const f=this.files[0];this.value='';if(!f)return;if(!/\.glb$/i.test(f.name))return alert('Iltimos, .glb formatidagi model tanlang.');
+ const [n,h]=$('#glbType').value.split('|');toast('model yuklanmoqda…');const url=URL.createObjectURL(f);
+ new THREE.GLTFLoader().load(url,gl=>{const m=gl.scene;m.traverse(c=>{if(c.isMesh)c.castShadow=c.receiveShadow=true});
+  let b=box(m),s=new THREE.Vector3();b.getSize(s);m.scale.multiplyScalar(+h/Math.max(s.y,.001));m.updateMatrixWorld(true);
+  b=box(m);const c=b.getCenter(new THREE.Vector3());m.position.x-=c.x;m.position.z-=c.z;m.position.y-=b.min.y;
+  const g=new THREE.Group();g.add(m);g.userData={type:'glb',name:n,tint:[],glb:true,nt:true};pushU();
+  if(addItem(g)){select(g);toast(n+' modeli qo‘shildi. Sudrab ko‘chiring.')}else undoS.pop()},undefined,()=>toast('GLB faylni o‘qib bo‘lmadi. Faylni tekshiring.'))};
+$$('#views button').forEach(b=>b.onclick=()=>{setView(b.dataset.v);$$('#views button').forEach(x=>x.classList.toggle('on',x===b))});
+let time='day';
+function applyTime(){const d=time==='day';scene.background=renderer.xr.isPresenting?null:new THREE.Color(d?'#dfe5e2':'#151c22');
+ sun.color.set(d?'#fff1d8':'#ff9d5e');sun.intensity=d?1.1:.3;amb.intensity=d?.45:.2;hemi.intensity=d?.55:.22;hemi.color.set(d?'#ffffff':'#8d9fc9');
+ glassMat.color.set(d?'#d9eefa':'#22304a');scene.traverse(o=>{if(o.isPointLight)o.intensity=d?0:1.5});
+ $$('#times [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===time))}
+$$('#times [data-t]').forEach(b=>b.onclick=()=>{time=b.dataset.t;applyTime();save()});
+$('#shot').onclick=()=>{renderer.render(scene,camera);const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download='mehmonxona.png';a.click()};
+$('#clear').onclick=()=>{if(!items.length||!confirm('Barcha mebellar o‘chirilsinmi?'))return;pushU();items.forEach(o=>furn.remove(o));items=[];select(null);save()};
+$('#auto').onclick=()=>{if(!items.length)return;pushU();const old=items.map(o=>o.position.clone());
+ items.forEach(o=>o.position.x=99);const ord=items.slice().sort((a,b)=>{const s=o=>{const v=new THREE.Vector3();box(o).getSize(v);return v.x*v.z};return s(b)-s(a)});
+ ord.forEach(o=>{if(!findSpot(o)){const i=items.indexOf(o);o.position.copy(old[i])}});refresh();toast('mebellar tartiblandi.');save()};
+const PRE=[['rug',0,-.3,0],['sofa',0,-1.98,0],['coffee',0,-.5,0],['armchair',-2.1,-.3,60],['armchair',2.1,-.3,-60],['shelf',-2.3,-2.28,0],['side',1.35,-1.95,0],['lamp',1.95,-2.2,0],['plant',2.65,-2.15,0],['tv',0,2.1,180]];
+function preset(){items.forEach(o=>furn.remove(o));items=[];PRE.forEach(([t,x,z,r])=>addItem(makeItem(t),{x,z,r}));select(null)}
+$('#preset').onclick=()=>{pushU();preset();toast('namuna joylashuv qo‘yildi.');save()};
+
+/* ===== saqlash ===== */
+const KEY='ar-atelier-v3';
+function save(){try{localStorage.setItem(KEY,JSON.stringify({time,floor:floorKind,wall:'#'+wallMat.color.getHexString(),items:items.filter(o=>!o.userData.glb).map(o=>({t:o.userData.type,x:o.position.x,y:o.position.y,z:o.position.z,r:o.rotation.y/rad,s:o.scale.x,c:o.userData.c}))}))}catch(e){}}
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY));if(!o||!o.items)return false;time=o.time||'day';setFloor(o.floor||'parket');setWall(o.wall||WALLS[0]);
+ o.items.forEach(i=>CAT[i.t]&&addItem(makeItem(i.t,i.c),{x:i.x,y:i.y,z:i.z,r:i.r,s:i.s}));return true}catch(e){return false}}
+
+/* ===== AR ===== */
+const reticle=new THREE.Mesh(new THREE.RingGeometry(.08,.11,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xb8893b}));
+reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
+const arGroup=new THREE.Group();scene.add(arGroup);
+let arS=null,hitSrc=null,arList=[],arSel=null;
+const arMsg=t=>$('#arMsg').textContent=t;
+$('#arBtn').onclick=async()=>{
+ if(!navigator.xr)return alert('Brauzer WebXR ni qo‘llab-quvvatlamaydi. Android Chrome ishlating.');
+ try{if(!await navigator.xr.isSessionSupported('immersive-ar'))return alert('AR mavjud emas. Android Chrome, ARCore va HTTPS ulanishini tekshiring.');
+  $('#arPick').innerHTML=items.map((o,i)=>'<option value="'+i+'">'+o.userData.name+'</option>').join('')||'<option value="-1">Mebel yo‘q</option>';
+  if(sel)$('#arPick').value=items.indexOf(sel);
+  $('#ar').style.display='flex';
+  arS=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:$('#ar')}});
+  renderer.xr.setReferenceSpaceType('local');await renderer.xr.setSession(arS);
+  room.visible=furn.visible=helper.visible=false;applyTime();
+  const vs=await arS.requestReferenceSpace('viewer');hitSrc=await arS.requestHitTestSource({space:vs});
+  arS.addEventListener('end',()=>{hitSrc=null;arS=null;reticle.visible=false;arGroup.clear();arList=[];arSel=null;room.visible=furn.visible=true;$('#ar').style.display='none';applyTime();resize();refresh()});
+ }catch(e){$('#ar').style.display='none';alert('AR ishga tushmadi: '+e.message)}};
+function placeAR(all){if(!reticle.visible)return arMsg('Pol topilmadi. Telefonni sekin harakatlantiring.');
+ const src=all?items:[items[+$('#arPick').value]].filter(Boolean);if(!src.length)return arMsg('Avval mebel qo‘shing.');
+ const w=new THREE.Group();w.position.setFromMatrixPosition(reticle.matrix);
+ src.forEach(o=>{const c=o.clone(true);if(!all){c.position.set(0,o.position.y,0);c.rotation.y=0}w.add(c)});
+ const sh=new THREE.Mesh(new THREE.PlaneGeometry(all?7:3,all?6:3).rotateX(-Math.PI/2),new THREE.ShadowMaterial({opacity:.3}));sh.position.y=.003;sh.receiveShadow=true;w.add(sh);
+ arGroup.add(w);arList.push(w);arSel=w;applyTime();arMsg('Qo‘yildi. Aylantiring yoki o‘lchamini o‘zgartiring.')}
+$('#arOne').onclick=()=>placeAR(false);$('#arAll').onclick=()=>placeAR(true);
+$('#arRot').onclick=()=>arSel&&(arSel.rotation.y+=15*rad);
+$('#arPl').onclick=()=>arSel&&arSel.scale.multiplyScalar(1.1);$('#arMi').onclick=()=>arSel&&arSel.scale.multiplyScalar(.9);
+$('#arUndo').onclick=()=>{const w=arList.pop();if(w)arGroup.remove(w);arSel=arList[arList.length-1]||null};
+$('#arEnd').onclick=()=>arS&&arS.end();
+
+/* ===== ishga tushirish ===== */
+renderer.setAnimationLoop((t,frame)=>{
+ if(renderer.xr.isPresenting){if(frame&&hitSrc){const h=frame.getHitTestResults(hitSrc);if(h.length){const p=h[0].getPose(renderer.xr.getReferenceSpace());if(p){reticle.visible=true;reticle.matrix.fromArray(p.transform.matrix)}}else reticle.visible=false}}
+ else{controls.update();if(sel&&helper.visible)helper.update()}
+ renderer.render(scene,camera)});
+resize();setView('persp');
+if(!load())preset();
+applyTime();refresh();
+toast('tayyor. Katalogdan mebel qo‘shing yoki o‘z GLB modelingizni yuklang.');
+</script>
+</body>
+</html>
